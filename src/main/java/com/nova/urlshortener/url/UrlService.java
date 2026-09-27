@@ -41,4 +41,11 @@ public class UrlService {
 
         return shortCode;
     }
+
+    public String getOriginalUrl(String shortCode) {
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new UrlNotFoundException(shortCode));
+
+        return url.getOriginalUrl();
+    }
 }
