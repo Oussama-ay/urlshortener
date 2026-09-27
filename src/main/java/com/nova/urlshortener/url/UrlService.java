@@ -3,21 +3,23 @@ package com.nova.urlshortener.url;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class UrlService {
 
-    private static final String BASE_URL = "http://localhost:8080/";
-
     private final UrlRepository urlRepository;
     private final ShortCodeGenerator shortCodeGenerator;
+    private final String baseUrl;
 
     public UrlService(
             UrlRepository urlRepository,
-            ShortCodeGenerator shortCodeGenerator
+            ShortCodeGenerator shortCodeGenerator,
+            @Value("${app.base-url}") String baseUrl
     ) {
         this.urlRepository = urlRepository;
         this.shortCodeGenerator = shortCodeGenerator;
+        this.baseUrl = baseUrl;
     }
 
     public UrlResponse createUrl(CreateUrlRequest request) {
@@ -28,7 +30,7 @@ public class UrlService {
 
         return new UrlResponse(
                 shortCode,
-                BASE_URL + shortCode
+                baseUrl + "/" + shortCode
         );
     }
 
