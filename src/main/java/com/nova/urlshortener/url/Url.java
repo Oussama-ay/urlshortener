@@ -19,12 +19,16 @@ public class Url {
     @Column(name = "created_at", nullable = false, insertable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "expires_at", nullable = true)
+    private OffsetDateTime expiresAt;
+
     protected Url() {
     }
 
-    public Url(String originalUrl, String shortCode) {
+    public Url(String originalUrl, String shortCode, OffsetDateTime expiresAt) {
         this.originalUrl = originalUrl;
         this.shortCode = shortCode;
+        this.expiresAt = expiresAt;
     }
 
     // getters
@@ -42,5 +46,9 @@ public class Url {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public OffsetDateTime getExpiresAt() {
+        return expiresAt;
     }
 }

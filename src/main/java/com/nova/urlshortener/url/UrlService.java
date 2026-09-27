@@ -3,6 +3,9 @@ package com.nova.urlshortener.url;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlResponse;
 import org.springframework.stereotype.Service;
+
+import java.time.OffsetDateTime;
+
 import org.springframework.beans.factory.annotation.Value;
 
 @Service
@@ -25,7 +28,7 @@ public class UrlService {
     public UrlResponse createUrl(CreateUrlRequest request) {
         String shortCode = generateAvailableShortCode();
 
-        Url url = new Url(request.url(), shortCode);
+        Url url = new Url(request.url(), shortCode, request.expiresAt());
         urlRepository.save(url);
 
         return new UrlResponse(
@@ -47,6 +50,11 @@ public class UrlService {
     public String getOriginalUrl(String shortCode) {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException(shortCode));
+
+        if (url.getExpiresAt() != null &&
+                !url.getExpiresAt().isAfter(OffsetDateTime.now())) {
+            throw new UrlExpiredException(shortCode);
+        }
 
         return url.getOriginalUrl();
     }
