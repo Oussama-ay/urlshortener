@@ -15,15 +15,18 @@ public class UrlService {
     private final UrlRepository urlRepository;
     private final ShortCodeGenerator shortCodeGenerator;
     private final String baseUrl;
+    private final UrlCache urlCache;
 
     public UrlService(
             UrlRepository urlRepository,
             ShortCodeGenerator shortCodeGenerator,
-            @Value("${app.base-url}") String baseUrl
+            @Value("${app.base-url}") String baseUrl,
+            UrlCache urlCache
     ) {
         this.urlRepository = urlRepository;
         this.shortCodeGenerator = shortCodeGenerator;
         this.baseUrl = baseUrl;
+        this.urlCache = urlCache;
     }
 
     public UrlResponse createUrl(CreateUrlRequest request) {
@@ -51,10 +54,17 @@ public class UrlService {
     public String getOriginalUrl(String shortCode) {
         Url url = findValidUrl(shortCode);
 
+        String originalUrl = urlCache.getOriginalUrl(shortCode)
+                .orElseGet(() -> {
+                    String value = url.getOriginalUrl();
+                    urlCache.putOriginalUrl(shortCode, value);
+                    return value;
+                });
+
         url.recordClick();
         urlRepository.save(url);
 
-        return url.getOriginalUrl();
+        return originalUrl;
     }
 
     private Url findValidUrl(String shortCode) {
