@@ -22,6 +22,12 @@ public class Url {
     @Column(name = "expires_at", nullable = true)
     private OffsetDateTime expiresAt;
 
+    @Column(name = "click_count", nullable = false)
+    private Long clickCount = 0L;
+
+    @Column(name = "last_accessed_at")
+    private OffsetDateTime lastAccessedAt;
+
     protected Url() {
     }
 
@@ -50,5 +56,18 @@ public class Url {
 
     public OffsetDateTime getExpiresAt() {
         return expiresAt;
+    }
+
+    public Long getClickCount() {
+        return clickCount;
+    }
+
+    public OffsetDateTime getLastAccessedAt() {
+        return lastAccessedAt;
+    }
+
+    public void recordClick() {
+        this.clickCount++;
+        this.lastAccessedAt = OffsetDateTime.now();
     }
 }

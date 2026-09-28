@@ -1,6 +1,7 @@
 package com.nova.urlshortener.url;
 
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
+import com.nova.urlshortener.url.dto.UrlDetailsResponse;
 import com.nova.urlshortener.url.dto.UrlResponse;
 import org.springframework.stereotype.Service;
 
@@ -48,6 +49,15 @@ public class UrlService {
     }
 
     public String getOriginalUrl(String shortCode) {
+        Url url = findValidUrl(shortCode);
+
+        url.recordClick();
+        urlRepository.save(url);
+
+        return url.getOriginalUrl();
+    }
+
+    private Url findValidUrl(String shortCode) {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException(shortCode));
 
@@ -56,6 +66,21 @@ public class UrlService {
             throw new UrlExpiredException(shortCode);
         }
 
-        return url.getOriginalUrl();
+        return url;
+    }
+
+    public UrlDetailsResponse getUrlDetails(String shortCode) {
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() -> new UrlNotFoundException(shortCode));
+
+        return new UrlDetailsResponse(
+                url.getShortCode(),
+                baseUrl + "/" + url.getShortCode(),
+                url.getOriginalUrl(),
+                url.getClickCount(),
+                url.getCreatedAt(),
+                url.getLastAccessedAt(),
+                url.getExpiresAt()
+        );
     }
 }
