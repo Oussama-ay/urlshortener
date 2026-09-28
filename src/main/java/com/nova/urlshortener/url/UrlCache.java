@@ -1,10 +1,14 @@
 package com.nova.urlshortener.url;
 
 import java.util.Optional;
+import com.nova.urlshortener.url.dto.CachedUrl;
+import java.time.Duration;
 
 public interface UrlCache {
 
-    Optional<String> getOriginalUrl(String shortCode);
+    Optional<CachedUrl> get(String shortCode);
 
-    void putOriginalUrl(String shortCode, String originalUrl);
+    void put(String shortCode, CachedUrl cachedUrl, Duration ttl);
+
+    void evict(String shortCode);
 }
