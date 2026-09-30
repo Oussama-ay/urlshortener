@@ -8,6 +8,9 @@ import com.nova.urlshortener.ratelimit.RateLimitExceededException;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlResponse;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
@@ -33,6 +36,15 @@ public class UrlController {
 		this.rateLimiter = rateLimiter;
 	}
 
+	@Operation(
+			summary = "Create a short URL",
+			description = "Creates a short code for an original URL"
+	)
+	@ApiResponses({
+			@ApiResponse(responseCode = "201", description = "Short URL created"),
+			@ApiResponse(responseCode = "400", description = "Invalid request"),
+			@ApiResponse(responseCode = "429", description = "Rate limit exceeded")
+	})
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
 	public UrlResponse createUrl(
@@ -48,6 +60,15 @@ public class UrlController {
 		return urlService.createUrl(request);
 	}
 
+	@Operation(
+			summary = "Get URL details",
+			description = "Returns URL metadata and click analytics"
+	)
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "URL found"),
+			@ApiResponse(responseCode = "404", description = "Short code not found"),
+			@ApiResponse(responseCode = "410", description = "URL expired")
+	})
 	@GetMapping("/{shortCode}")
 	public UrlDetailsResponse getUrlDetails(@PathVariable String shortCode) {
 		return urlService.getUrlDetails(shortCode);
