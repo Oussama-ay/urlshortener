@@ -15,28 +15,28 @@ import java.net.URI;
 @RestController
 public class RedirectController {
 
-    private final UrlService urlService;
+	private final UrlService urlService;
 
-    public RedirectController(UrlService urlService) {
-        this.urlService = urlService;
-    }
+	public RedirectController(UrlService urlService) {
+		this.urlService = urlService;
+	}
 
-    @Operation(
-            summary = "Redirect short URL",
-            description = "Redirects a short code to its original URL"
-    )
-    @ApiResponses({
-            @ApiResponse(responseCode = "302", description = "Redirect to original URL"),
-            @ApiResponse(responseCode = "404", description = "Short code not found"),
-            @ApiResponse(responseCode = "410", description = "URL expired")
-    })
-    @GetMapping("/{shortCode}")
-    public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
-        String originalUrl = urlService.getOriginalUrl(shortCode);
+	@Operation(
+			summary = "Redirect short URL",
+			description = "Redirects a short code to its original URL"
+	)
+	@ApiResponses({
+			@ApiResponse(responseCode = "302", description = "Redirect to original URL"),
+			@ApiResponse(responseCode = "404", description = "Short code not found"),
+			@ApiResponse(responseCode = "410", description = "URL expired")
+	})
+	@GetMapping("/{shortCode}")
+	public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
+		String originalUrl = urlService.getOriginalUrl(shortCode);
 
-        return ResponseEntity
-                .status(HttpStatus.FOUND)
-                .location(URI.create(originalUrl))
-                .build();
-    }
+		return ResponseEntity
+				.status(HttpStatus.FOUND)
+				.location(URI.create(originalUrl))
+				.build();
+	}
 }
