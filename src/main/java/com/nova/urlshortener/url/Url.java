@@ -66,8 +66,4 @@ public class Url {
         return lastAccessedAt;
     }
 
-    public void recordClick() {
-        this.clickCount++;
-        this.lastAccessedAt = OffsetDateTime.now();
-    }
 }

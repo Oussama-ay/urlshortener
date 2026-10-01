@@ -5,7 +5,9 @@ import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlDetailsResponse;
 import com.nova.urlshortener.url.dto.UrlResponse;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.Duration;
 import java.util.Optional;
@@ -33,7 +35,13 @@ public class UrlService {
         this.urlCache = urlCache;
     }
 
+    @Transactional
     public UrlResponse createUrl(CreateUrlRequest request) {
+        validateUrl(request.url());
+        if (request.expiresAt() != null && !request.expiresAt().isAfter(OffsetDateTime.now())) {
+            throw new InvalidExpirationException();
+        }
+
         String shortCode = generateAvailableShortCode();
 
         Url url = new Url(request.url(), shortCode, request.expiresAt());
@@ -43,6 +51,25 @@ public class UrlService {
                 shortCode,
                 baseUrl + "/" + shortCode
         );
+    }
+
+    private void validateUrl(String value) {
+        if (value == null || value.isBlank()) {
+            throw new InvalidUrlException();
+        }
+
+        URI uri;
+        try {
+            uri = URI.create(value);
+        } catch (IllegalArgumentException exception) {
+            throw new InvalidUrlException();
+        }
+
+        String scheme = uri.getScheme();
+        if ((!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))
+                || uri.getHost() == null) {
+            throw new InvalidUrlException();
+        }
     }
 
     private String generateAvailableShortCode() {
@@ -67,6 +94,7 @@ public class UrlService {
                 throw new UrlExpiredException(shortCode);
             }
 
+            urlRepository.recordClick(shortCode);
             return value.originalUrl();
         }
 
@@ -81,6 +109,7 @@ public class UrlService {
 
         urlCache.put(shortCode, value, ttl);
 
+        urlRepository.recordClick(shortCode);
         return url.getOriginalUrl();
     }
 
@@ -96,6 +125,7 @@ public class UrlService {
         return url;
     }
 
+    @Transactional(readOnly = true)
     public UrlDetailsResponse getUrlDetails(String shortCode) {
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() -> new UrlNotFoundException(shortCode));
