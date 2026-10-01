@@ -1,7 +1,7 @@
 HELP.md
 target/
 .m2/
-.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
@@ -33,3 +33,14 @@ build/
 ### VS Code ###
 .vscode/
 static/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
