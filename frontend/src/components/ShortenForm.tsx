@@ -5,11 +5,16 @@ type UrlResponse = {
   shortUrl: string;
 };
 
+type ApiError = {
+  message?: string;
+};
+
 function ShortenForm() {
   const [url, setUrl] = useState("");
   const [result, setResult] = useState<UrlResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -17,6 +22,7 @@ function ShortenForm() {
     setLoading(true);
     setError("");
     setResult(null);
+    setCopied(false);
 
     try {
       const response = await fetch(
@@ -26,24 +32,41 @@ function ShortenForm() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            url: url,
-          }),
+          body: JSON.stringify({ url }),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Failed to shorten URL");
+        const errorData: ApiError = await response.json().catch(() => ({}));
+
+        throw new Error(errorData.message || "Failed to shorten URL");
       }
 
       const data: UrlResponse = await response.json();
 
       setResult(data);
+      setCopied(false);
     } catch (err) {
-      setError("Something went wrong");
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Something went wrong");
+      }
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCopy() {
+    if (!result) return;
+
+    await navigator.clipboard.writeText(result.shortUrl);
+
+    setCopied(true);
+
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   }
 
   return (
@@ -61,14 +84,28 @@ function ShortenForm() {
         </button>
       </form>
 
-      {error && <p>{error}</p>}
+      {error && <p className="error-message">{error}</p>}
 
       {result && (
-        <div>
-          <p>{url}</p>
-          <a href={result.shortUrl}>
-            {result.shortUrl}
-          </a>
+        <div className="url-result">
+          <p className="original-url">{url}</p>
+
+          <div className="short-url-section">
+            <a
+              href={result.shortUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {result.shortUrl}
+            </a>
+
+            <button
+              type="button"
+              onClick={handleCopy}
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
         </div>
       )}
     </section>
