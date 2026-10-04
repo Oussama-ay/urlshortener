@@ -67,4 +67,4 @@ The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_
 make test
 ```
 
-Tests use the local PostgreSQL and Redis containers. Never commit real `.env` files or service credentials.
+Tests use the local PostgreSQL and Redis containers.
