@@ -36,9 +36,17 @@ React frontend on Vercel → Spring Boot API on Render → Neon PostgreSQL and U
 
 Requirements: Docker Compose, Java 17, Node.js, npm, and Make.
 
+Start the local database and Redis dependencies:
+
 ```bash
-make install
-make dev
+make deps
+```
+
+Then start each service with its own target:
+
+```bash
+make backend-local
+make frontend-local
 ```
 
 Frontend: `http://localhost:5173`

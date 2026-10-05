@@ -2,47 +2,27 @@
 
 COMPOSE ?= docker compose
 
-.PHONY: help install dev up down logs ps deps test test-backend test-frontend
+.PHONY: help install deps backend-local frontend-local down
 
 help:
 	@printf '%s\n' \
-	  'make install        Install frontend dependencies from the lockfile' \
-	  'make dev            Start the Docker backend stack, then Vite locally' \
-	  'make up             Build and start the Docker backend stack' \
-	  'make down           Stop the Docker stack (keep database data)' \
-	  'make logs           Follow Docker service logs' \
-	  'make ps             Show Docker service status' \
-	  'make deps           Start PostgreSQL and Redis only' \
-	  'make test           Run backend and frontend checks' \
-	  'make test-backend   Start dependencies and run Maven tests' \
-	  'make test-frontend  Run ESLint and the TypeScript/Vite build'
+	  'make install       Install frontend dependencies' \
+	  'make deps          Start PostgreSQL and Redis locally' \
+	  'make backend-local Run the Spring Boot API with the local profile' \
+	  'make frontend-local Run the React frontend' \
+	  'make down          Stop the local Docker stack'
 
 install:
 	cd frontend && npm ci
 
-dev: up
-	cd frontend && npm run dev
-
-up:
-	$(COMPOSE) up --build -d --wait
-
-down:
-	$(COMPOSE) down
-
-logs:
-	$(COMPOSE) logs -f
-
-ps:
-	$(COMPOSE) ps
-
 deps:
 	$(COMPOSE) up -d --wait postgres redis
 
-test: test-backend test-frontend
+backend-local: deps
+	cd backend && SPRING_PROFILES_ACTIVE=local ./mvnw spring-boot:run
 
-test-backend: deps
-	cd backend && ./mvnw clean test
+frontend-local:
+	cd frontend && npm run dev
 
-test-frontend:
-	cd frontend && npm run lint
-	cd frontend && npm run build
+down:
+	$(COMPOSE) down
