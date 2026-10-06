@@ -31,7 +31,7 @@ public class AuthService {
         this.jwtService = jwtService;
     }
 
-    public LoginResponse login(LoginRequest request)
+    public String login(LoginRequest request)
     {
 		String email = request.email().trim().toLowerCase(Locale.ROOT);
 
@@ -45,7 +45,7 @@ public class AuthService {
 
 		String token = jwtService.generateToken(authenticatedUser);
 
-		return new LoginResponse(token);
+		return token;
 	}
 
     public RegisterResponse register(RegisterRequest request) {

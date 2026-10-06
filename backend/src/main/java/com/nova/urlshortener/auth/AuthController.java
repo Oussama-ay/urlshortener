@@ -3,6 +3,8 @@ package com.nova.urlshortener.auth;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -11,16 +13,29 @@ public class AuthController {
 
     private final AuthService authService;
 
-    public AuthController(AuthService authService) {
+    private final AuthCookie authCookie;
+
+    public AuthController(AuthService authService, AuthCookie authCookie) {
         this.authService = authService;
+        this.authCookie = authCookie;
     }
 
     @SecurityRequirements
     @PostMapping("/login")
-    public LoginResponse login(
+    public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        return authService.login(request);
+        String token = authService.login(request);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, authCookie.create(token).toString())
+                .body(new LoginResponse("Logged in"));
+    }
+
+    @SecurityRequirements
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, authCookie.clear().toString()).build();
     }
 
     @SecurityRequirements

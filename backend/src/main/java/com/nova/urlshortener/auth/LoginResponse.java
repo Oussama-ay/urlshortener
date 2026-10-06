@@ -1,6 +1,4 @@
 package com.nova.urlshortener.auth;
 
-public record LoginResponse(
-        String token
-) {
+public record LoginResponse(String message) {
 }

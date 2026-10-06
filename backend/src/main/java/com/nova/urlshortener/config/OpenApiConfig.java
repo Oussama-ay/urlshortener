@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Configuration;
 public class OpenApiConfig {
     @Bean
     OpenAPI urlShortenerOpenAPI() {
-        String securitySchemeName = "bearerAuth";
+        String securitySchemeName = "cookieAuth";
         return new OpenAPI()
                 .info(new Info()
                         .title("URL Shortener API")
@@ -21,9 +21,8 @@ public class OpenApiConfig {
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components().addSecuritySchemes(securitySchemeName,
                         new SecurityScheme()
-                                .name(securitySchemeName)
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")));
+                                .name("access_token")
+                                .type(SecurityScheme.Type.APIKEY)
+                                .in(SecurityScheme.In.COOKIE)));
     }
 }

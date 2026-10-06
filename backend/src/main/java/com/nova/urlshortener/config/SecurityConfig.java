@@ -1,6 +1,10 @@
 package com.nova.urlshortener.config;
 
 import com.nova.urlshortener.auth.JwtAuthenticationFilter;
+import com.nova.urlshortener.auth.TrustedOriginFilter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.web.csrf.CsrfFilter;
 import com.nova.urlshortener.user.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -61,9 +65,14 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper,
+            @Value("${app.frontend-url}") String frontendUrl,
+            @Value("${app.base-url}") String backendUrl) throws Exception {
         http
+                // Stateless CSRF protection is enforced by TrustedOriginFilter on every write.
                 .csrf(csrf -> csrf.disable())
+                .cors(Customizer.withDefaults())
+                .addFilterBefore(new TrustedOriginFilter(frontendUrl, backendUrl, objectMapper), CsrfFilter.class)
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions

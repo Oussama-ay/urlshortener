@@ -76,14 +76,29 @@ Local and deployment variable names are documented in:
 
 The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `APP_BASE_URL`, `APP_FRONTEND_URL`, `JWT_SECRET`, and optional `JWT_EXPIRATION` (milliseconds, default `86400000`).
 
+## Cookie authentication
+
+Frontend requests use `credentials: "include"`. JWTs are stored in an HttpOnly,
+host-only cookie, never in localStorage or JSON login responses. Production uses
+`Secure; SameSite=None`; the local profile uses `SameSite=Lax` over HTTP.
+Set `APP_FRONTEND_URL` to the exact frontend origin and `APP_BASE_URL` to the public backend origin.
+CORS allows credentials only from that frontend origin.
+
+Every write request (including register, login, and logout) must have an `Origin`
+matching the configured frontend or backend origin. Missing, `null`, and foreign
+origins return a JSON `403`. This strict origin check provides CSRF protection;
+CLI clients must supply the trusted `Origin` header too. Bearer headers are no longer accepted.
+Logout expires the cookie; copied JWTs remain valid until expiration.
+Browsers that block third-party cookies may require hosting the frontend and backend on the same site.
+
 ## Authentication smoke test
 
 In Swagger UI, call `POST /api/auth/register`, then `POST /api/auth/login`.
-Copy the returned token into **Authorize** (paste the JWT without the `Bearer` prefix).
+Login sets an HttpOnly `access_token` cookie; the response contains no JWT. Swagger sends the cookie automatically.
 Create a URL with `POST /api/urls`, list it with `GET /api/urls?page=0&size=10&sort=createdAt,desc`,
 and fetch its details with `GET /api/urls/{shortCode}`.
 Register and log in as a second user: the first user's details must return `404` and their URLs must be absent from the list.
-Clear authorization and confirm `GET /{shortCode}` redirects with `302`, while management endpoints return `401`.
+Call `POST /api/auth/logout` and confirm `GET /{shortCode}` redirects with `302`, while management endpoints return `401`.
 Wrong credentials return `401`, duplicate registration `409`, rate limiting `429`, and expired redirects `410`.
 
 ## Checks

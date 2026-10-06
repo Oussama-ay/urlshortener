@@ -29,6 +29,7 @@ function ShortenForm() {
         `${import.meta.env.VITE_API_URL}/api/urls`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
