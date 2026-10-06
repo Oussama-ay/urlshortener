@@ -36,13 +36,7 @@ function Navbar() {
         <img src="/images/logo.svg" alt="Shortly" />
       </Link>
 
-      <div>
-        <a href="#">Features</a>
-        <a href="#">Pricing</a>
-        <a href="#">Resources</a>
-      </div>
-
-      <div>
+      <div className="nav-auth">
         {!loading && (authenticated ? (
           <>
             <Link className="nav-action" to="/my-links">My Links</Link>

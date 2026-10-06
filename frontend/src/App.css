@@ -17,13 +17,8 @@ nav img {
   width: 120px;
 }
 
-nav > div:first-of-type {
-  display: flex;
-  gap: 24px;
-  flex: 1;
-}
-
-nav > div:last-of-type {
+nav .nav-auth {
+  margin-left: auto;
   align-items: center;
   display: flex;
   gap: 12px;
@@ -199,14 +194,6 @@ nav .nav-signup {
   nav {
     flex-wrap: wrap;
     gap: 16px;
-  }
-
-  nav > div:first-of-type {
-    display: none;
-  }
-
-  nav > div:last-of-type {
-    margin-left: auto;
   }
 
   .hero {
