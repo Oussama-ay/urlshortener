@@ -2,6 +2,7 @@ package com.nova.urlshortener.auth;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nova.urlshortener.user.UserRepository;
+import com.nova.urlshortener.url.UrlRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,12 @@ class AuthApiTests {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private UrlRepository urlRepository;
+
     @BeforeEach
     void setUp() {
+      urlRepository.deleteAll();
         userRepository.deleteAll();
     }
 

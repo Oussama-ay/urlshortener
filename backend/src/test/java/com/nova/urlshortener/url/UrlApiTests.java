@@ -18,6 +18,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -105,6 +106,7 @@ class UrlApiTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"http://example.com/path?q=1#fragment", "HTTPS://example.com/"})
+    @Transactional
     void validFutureExpirationSurvivesCacheRoundTrip(String destination) throws Exception {
         // Use ISO text like a real HTTP client; CachedUrl uses the configured Jackson mapper.
         String body = mapper.writeValueAsString(java.util.Map.of(
@@ -112,6 +114,10 @@ class UrlApiTests {
         String response = mvc.perform(post("/api/urls").header("Authorization", authorization).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
         String code = mapper.readTree(response).get("shortCode").asText();
+        assertEquals("test@example.com", repository.findByShortCode(code)
+            .orElseThrow()
+            .getUser()
+            .getEmail());
         for (int i = 0; i < 2; i++) {
             mvc.perform(get("/" + code).header("Authorization", authorization))
                     .andExpect(status().isFound())

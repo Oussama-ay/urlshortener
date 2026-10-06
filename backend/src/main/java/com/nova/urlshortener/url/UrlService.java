@@ -11,6 +11,8 @@ import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.Duration;
 import java.util.Optional;
+import com.nova.urlshortener.user.User;
+import com.nova.urlshortener.user.UserRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -21,30 +23,37 @@ public class UrlService {
     private final ShortCodeGenerator shortCodeGenerator;
     private final String baseUrl;
     private final UrlCache urlCache;
+    private final UserRepository userRepository;
     private static final Duration DEFAULT_CACHE_TTL = Duration.ofHours(24);
 
     public UrlService(
             UrlRepository urlRepository,
             ShortCodeGenerator shortCodeGenerator,
             @Value("${app.base-url}") String baseUrl,
-            UrlCache urlCache
+            UrlCache urlCache,
+            UserRepository userRepository
     ) {
         this.urlRepository = urlRepository;
         this.shortCodeGenerator = shortCodeGenerator;
         this.baseUrl = baseUrl;
         this.urlCache = urlCache;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public UrlResponse createUrl(CreateUrlRequest request) {
+    public UrlResponse createUrl(CreateUrlRequest request, String authenticatedEmail) {
         validateUrl(request.url());
         if (request.expiresAt() != null && !request.expiresAt().isAfter(OffsetDateTime.now())) {
             throw new InvalidExpirationException();
         }
 
+        User user = userRepository.findByEmail(authenticatedEmail)
+            .orElseThrow(() ->
+                    new IllegalStateException("Authenticated user not found"));
+
         String shortCode = generateAvailableShortCode();
 
-        Url url = new Url(request.url(), shortCode, request.expiresAt());
+        Url url = new Url(request.url(), shortCode, request.expiresAt(), user);
         urlRepository.save(url);
 
         return new UrlResponse(

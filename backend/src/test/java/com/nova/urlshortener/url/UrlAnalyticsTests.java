@@ -2,6 +2,9 @@ package com.nova.urlshortener.url;
 
 import com.nova.urlshortener.url.dto.CachedUrl;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
+import com.nova.urlshortener.user.User;
+import com.nova.urlshortener.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,12 +26,22 @@ class UrlAnalyticsTests {
     @Autowired private UrlService service;
     @Autowired private UrlCache cache;
     @Autowired private UrlRepository repository;
+    @Autowired private UserRepository userRepository;
     @Autowired private ShortCodeGenerator generator;
+
+    @BeforeEach
+    void ensureTestUser() {
+        userRepository.findByEmail("analytics@example.com")
+                .orElseGet(() -> userRepository.save(
+                        new User("analytics@example.com", "test-password-hash")));
+    }
 
     @Test
     void countsColdAndCachedRedirectsButNotMetadataReads() {
         String destination = "https://example.com/analytics";
-        String code = service.createUrl(new CreateUrlRequest(destination, null)).shortCode();
+        String code = service.createUrl(
+            new CreateUrlRequest(destination, null),
+            "analytics@example.com").shortCode();
         assertTrue(cache.get(code).isEmpty());
         assertEquals(0L, service.getUrlDetails(code).clickCount());
 
@@ -47,7 +60,9 @@ class UrlAnalyticsTests {
 
     @Test
     void concurrentRedirectsDoNotLoseClicks() throws Exception {
-        String code = service.createUrl(new CreateUrlRequest("https://example.com/concurrent", null)).shortCode();
+        String code = service.createUrl(
+            new CreateUrlRequest("https://example.com/concurrent", null),
+            "analytics@example.com").shortCode();
         service.getOriginalUrl(code); // Warm the cache before simultaneous redirects.
         var executor = Executors.newFixedThreadPool(8);
         try {

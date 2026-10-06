@@ -1,6 +1,7 @@
 package com.nova.urlshortener.url;
 import jakarta.persistence.*;
 import java.time.OffsetDateTime;
+import com.nova.urlshortener.user.User;
 
 @Entity
 @Table(name = "urls")
@@ -28,13 +29,26 @@ public class Url {
     @Column(name = "last_accessed_at")
     private OffsetDateTime lastAccessedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = true)
+    private User user;
+
+    public User getUser() {
+        return user;
+    }
+
     protected Url() {
     }
 
-    public Url(String originalUrl, String shortCode, OffsetDateTime expiresAt) {
+    public Url(String originalUrl, String shortCode, OffsetDateTime expiresAt, User user) {
         this.originalUrl = originalUrl;
         this.shortCode = shortCode;
         this.expiresAt = expiresAt;
+        this.user = user;
+    }
+
+    public Url(String originalUrl, String shortCode, OffsetDateTime expiresAt) {
+        this(originalUrl, shortCode, expiresAt, null);
     }
 
     // getters

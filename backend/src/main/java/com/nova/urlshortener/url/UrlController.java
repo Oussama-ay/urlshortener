@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.nova.urlshortener.ratelimit.RateLimiter;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping ("/api/urls")
@@ -49,7 +50,8 @@ public class UrlController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public UrlResponse createUrl(
 			@Valid @RequestBody CreateUrlRequest request,
-			HttpServletRequest httpRequest) {
+			HttpServletRequest httpRequest,
+			Authentication authentication) {
 
 		String clientIp = httpRequest.getRemoteAddr();
 
@@ -57,7 +59,7 @@ public class UrlController {
 			throw new RateLimitExceededException();
 		}
 
-		return urlService.createUrl(request);
+		return urlService.createUrl(request, authentication.getName());
 	}
 
 	@Operation(
