@@ -4,6 +4,8 @@ import com.nova.urlshortener.url.dto.CachedUrl;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlDetailsResponse;
 import com.nova.urlshortener.url.dto.UrlResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,9 +49,7 @@ public class UrlService {
             throw new InvalidExpirationException();
         }
 
-        User user = userRepository.findByEmail(authenticatedEmail)
-            .orElseThrow(() ->
-                    new IllegalStateException("Authenticated user not found"));
+        User user = getAuthenticatedUser(authenticatedEmail);
 
         String shortCode = generateAvailableShortCode();
 
@@ -60,6 +60,11 @@ public class UrlService {
                 shortCode,
                 baseUrl + "/" + shortCode
         );
+    }
+
+    private User getAuthenticatedUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
     }
 
     private void validateUrl(String value) {
@@ -135,10 +140,21 @@ public class UrlService {
     }
 
     @Transactional(readOnly = true)
-    public UrlDetailsResponse getUrlDetails(String shortCode) {
-        Url url = urlRepository.findByShortCode(shortCode)
+    public UrlDetailsResponse getUrlDetails(String shortCode, String authenticatedEmail) {
+        User user = getAuthenticatedUser(authenticatedEmail);
+        Url url = urlRepository.findByShortCodeAndUserId(shortCode, user.getId())
                 .orElseThrow(() -> new UrlNotFoundException(shortCode));
 
+        return toDetailsResponse(url);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UrlDetailsResponse> getUserUrls(String authenticatedEmail, Pageable pageable) {
+        User user = getAuthenticatedUser(authenticatedEmail);
+        return urlRepository.findByUserId(user.getId(), pageable).map(this::toDetailsResponse);
+    }
+
+    private UrlDetailsResponse toDetailsResponse(Url url) {
         return new UrlDetailsResponse(
                 url.getShortCode(),
                 baseUrl + "/" + url.getShortCode(),

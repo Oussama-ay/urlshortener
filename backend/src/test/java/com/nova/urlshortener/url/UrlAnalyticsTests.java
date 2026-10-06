@@ -43,19 +43,19 @@ class UrlAnalyticsTests {
             new CreateUrlRequest(destination, null),
             "analytics@example.com").shortCode();
         assertTrue(cache.get(code).isEmpty());
-        assertEquals(0L, service.getUrlDetails(code).clickCount());
+        assertEquals(0L, service.getUrlDetails(code, "analytics@example.com").clickCount());
 
         assertEquals(destination, service.getOriginalUrl(code));
         assertTrue(cache.get(code).isPresent());
-        var first = service.getUrlDetails(code);
+        var first = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(1L, first.clickCount());
         assertNotNull(first.lastAccessedAt());
 
         assertEquals(destination, service.getOriginalUrl(code));
-        var second = service.getUrlDetails(code);
+        var second = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(2L, second.clickCount());
         assertFalse(second.lastAccessedAt().isBefore(first.lastAccessedAt()));
-        assertEquals(2L, service.getUrlDetails(code).clickCount());
+        assertEquals(2L, service.getUrlDetails(code, "analytics@example.com").clickCount());
     }
 
     @Test
@@ -76,7 +76,7 @@ class UrlAnalyticsTests {
         } finally {
             executor.shutdownNow();
         }
-        assertEquals(41L, service.getUrlDetails(code).clickCount());
+        assertEquals(41L, service.getUrlDetails(code, "analytics@example.com").clickCount());
     }
 
     @Test
@@ -85,13 +85,14 @@ class UrlAnalyticsTests {
         String destination = "https://example.com/expired";
         // Seed an already-expired mapping directly; creation now rejects past expiration.
         String code = generator.generate();
-        repository.save(new Url(destination, code, expiry));
+        repository.save(new Url(destination, code, expiry,
+                userRepository.findByEmail("analytics@example.com").orElseThrow()));
         assertThrows(UrlExpiredException.class, () -> service.getOriginalUrl(code));
 
         cache.put(code, new CachedUrl(destination, expiry), Duration.ofMinutes(1));
         assertThrows(UrlExpiredException.class, () -> service.getOriginalUrl(code));
         assertTrue(cache.get(code).isEmpty());
-        var details = service.getUrlDetails(code);
+        var details = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(0L, details.clickCount());
         assertNull(details.lastAccessedAt());
     }

@@ -131,6 +131,113 @@ class UrlApiTests {
     }
 
     @Test
+    void detailsRequireOwnershipWhileRedirectsRemainPublic() throws Exception {
+        String destination = "https://example.com/owned";
+        String response = mvc.perform(post("/api/urls")
+                        .header("Authorization", authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(new CreateUrlRequest(destination, null))))
+                .andExpect(status().isCreated()).andReturn().getResponse().getContentAsString();
+        String code = mapper.readTree(response).get("shortCode").asText();
+        String otherEmail = "other@example.com";
+        userRepository.findByEmail(otherEmail).orElseGet(() -> userRepository.save(
+                new User(otherEmail, "test-password-hash")));
+        var otherUser = org.springframework.security.core.userdetails.User
+                .withUsername(otherEmail).password("test-password-hash").roles("USER").build();
+        String otherAuthorization = "Bearer " + jwtService.generateToken(otherUser);
+
+        mvc.perform(get("/api/urls/" + code).header("Authorization", authorization))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.originalUrl").value(destination));
+        mvc.perform(get("/api/urls/" + code).header("Authorization", otherAuthorization))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.message").value("URL not found for short code: " + code));
+        mvc.perform(get("/api/urls/" + code)).andExpect(status().isUnauthorized());
+        // Verify both cold and cached public redirects.
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(get("/" + code)).andExpect(status().isFound())
+                    .andExpect(header().string("Location", destination));
+        }
+        mvc.perform(get("/" + code).header("Authorization", otherAuthorization))
+                .andExpect(status().isFound())
+                .andExpect(header().string("Location", destination));
+        // Warming the redirect cache must not grant access to details.
+        mvc.perform(get("/api/urls/" + code).header("Authorization", otherAuthorization))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void listUrlsFiltersOwnersAndSupportsPaginationAndSorting() throws Exception {
+        User ownerA = userRepository.save(new User(UUID.randomUUID() + "@example.com", "test-password-hash"));
+        User ownerB = userRepository.save(new User(UUID.randomUUID() + "@example.com", "test-password-hash"));
+        for (int i = 0; i < 3; i++) {
+            repository.save(new Url("https://example.com/a/" + i, generator.generate(), null, ownerA));
+        }
+        for (int i = 0; i < 2; i++) {
+            repository.save(new Url("https://example.com/b/" + i, generator.generate(), null, ownerB));
+        }
+        String tokenA = authorizationFor(ownerA.getEmail());
+        String tokenB = authorizationFor(ownerB.getEmail());
+
+        mvc.perform(get("/api/urls").header("Authorization", tokenA)
+                        .param("size", "10").param("sort", "originalUrl,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content.length()").value(3))
+                .andExpect(jsonPath("$.content[0].originalUrl").value("https://example.com/a/0"))
+                .andExpect(jsonPath("$.content[1].originalUrl").value("https://example.com/a/1"))
+                .andExpect(jsonPath("$.content[2].originalUrl").value("https://example.com/a/2"))
+                .andExpect(jsonPath("$.content[0].shortUrl").isNotEmpty())
+                .andExpect(jsonPath("$.content[0].clickCount").value(0))
+                .andExpect(jsonPath("$.content[0].createdAt").isNotEmpty());
+        mvc.perform(get("/api/urls").header("Authorization", tokenB)
+                        .param("sort", "originalUrl,asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(2))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].originalUrl").value("https://example.com/b/0"))
+                .andExpect(jsonPath("$.content[1].originalUrl").value("https://example.com/b/1"));
+        mvc.perform(get("/api/urls").header("Authorization", tokenA)
+                        .param("page", "0").param("size", "2").param("sort", "originalUrl,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.totalPages").value(2))
+                .andExpect(jsonPath("$.size").value(2))
+                .andExpect(jsonPath("$.number").value(0))
+                .andExpect(jsonPath("$.content.length()").value(2))
+                .andExpect(jsonPath("$.content[0].originalUrl").value("https://example.com/a/2"))
+                .andExpect(jsonPath("$.content[1].originalUrl").value("https://example.com/a/1"));
+        mvc.perform(get("/api/urls").header("Authorization", tokenA)
+                        .param("page", "1").param("size", "2").param("sort", "originalUrl,desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.number").value(1))
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].originalUrl").value("https://example.com/a/0"));
+        mvc.perform(get("/api/urls").header("Authorization", tokenA)
+                        .param("page", "2").param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(3))
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    @Test
+    void listUrlsRequiresAuthenticationAndReturnsEmptyPageForNewUser() throws Exception {
+        mvc.perform(get("/api/urls")).andExpect(status().isUnauthorized());
+        User owner = userRepository.save(new User(UUID.randomUUID() + "@example.com", "test-password-hash"));
+        mvc.perform(get("/api/urls").header("Authorization", authorizationFor(owner.getEmail())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalElements").value(0))
+                .andExpect(jsonPath("$.content").isEmpty());
+    }
+
+    private String authorizationFor(String email) {
+        var user = org.springframework.security.core.userdetails.User
+                .withUsername(email).password("test-password-hash").roles("USER").build();
+        return "Bearer " + jwtService.generateToken(user);
+    }
+
+    @Test
     void missingMappingUses404ApiError() throws Exception {
         String code = UUID.randomUUID().toString();
         for (String path : new String[]{"/" + code, "/api/urls/" + code}) {
