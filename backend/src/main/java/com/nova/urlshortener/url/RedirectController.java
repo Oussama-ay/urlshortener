@@ -1,5 +1,6 @@
 package com.nova.urlshortener.url;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,6 +31,7 @@ public class RedirectController {
 			@ApiResponse(responseCode = "404", description = "Short code not found"),
 			@ApiResponse(responseCode = "410", description = "URL expired")
 	})
+	@SecurityRequirements
 	@GetMapping("/{shortCode}")
 	public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
 		String originalUrl = urlService.getOriginalUrl(shortCode);

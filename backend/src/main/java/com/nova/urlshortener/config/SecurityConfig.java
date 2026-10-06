@@ -3,6 +3,10 @@ package com.nova.urlshortener.config;
 import com.nova.urlshortener.auth.JwtAuthenticationFilter;
 import com.nova.urlshortener.user.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nova.urlshortener.exception.ApiError;
+import java.time.OffsetDateTime;
+import org.springframework.http.MediaType;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -57,14 +61,19 @@ public class SecurityConfig {
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    SecurityFilterChain securityFilterChain(HttpSecurity http, ObjectMapper objectMapper) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) ->
-                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
+                                {
+                                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                                    objectMapper.writeValue(response.getOutputStream(), new ApiError(
+                                            401, "Authentication required or invalid token", OffsetDateTime.now()));
+                                }))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",

@@ -42,6 +42,13 @@ Start the local database and Redis dependencies:
 make deps
 ```
 
+Generate a local signing secret in the shell that starts the backend:
+
+```bash
+export JWT_SECRET="$(openssl rand -base64 32)"
+```
+
+Keep this value private and reuse it across restarts if existing tokens should remain valid.
 Then start each service with its own target:
 
 ```bash
@@ -51,8 +58,8 @@ make frontend-local
 
 Frontend: `http://localhost:5173`
 
-API: `http://localhost:8080`
-Swagger: `http://localhost:8080/swagger-ui/index.html`
+API: `http://localhost:8081`
+Swagger: `http://localhost:8081/swagger-ui/index.html`
 
 Stop the local services with:
 
@@ -67,7 +74,17 @@ Local and deployment variable names are documented in:
 - `backend/.env.example`
 - `frontend/.env.example`
 
-The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `APP_BASE_URL`, and `APP_FRONTEND_URL`.
+The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `APP_BASE_URL`, `APP_FRONTEND_URL`, `JWT_SECRET`, and optional `JWT_EXPIRATION` (milliseconds, default `86400000`).
+
+## Authentication smoke test
+
+In Swagger UI, call `POST /api/auth/register`, then `POST /api/auth/login`.
+Copy the returned token into **Authorize** (paste the JWT without the `Bearer` prefix).
+Create a URL with `POST /api/urls`, list it with `GET /api/urls?page=0&size=10&sort=createdAt,desc`,
+and fetch its details with `GET /api/urls/{shortCode}`.
+Register and log in as a second user: the first user's details must return `404` and their URLs must be absent from the list.
+Clear authorization and confirm `GET /{shortCode}` redirects with `302`, while management endpoints return `401`.
+Wrong credentials return `401`, duplicate registration `409`, rate limiting `429`, and expired redirects `410`.
 
 ## Checks
 

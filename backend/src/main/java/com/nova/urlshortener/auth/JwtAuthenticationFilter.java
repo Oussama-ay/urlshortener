@@ -1,5 +1,7 @@
 package com.nova.urlshortener.auth;
 
+import io.jsonwebtoken.JwtException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -69,7 +71,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             .setAuthentication(authentication);
                 }
             }
-        } catch (RuntimeException exception) {
+        } catch (JwtException | IllegalArgumentException | UsernameNotFoundException exception) {
             SecurityContextHolder.clearContext();
         }
 
