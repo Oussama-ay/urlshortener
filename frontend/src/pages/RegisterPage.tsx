@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getPendingUrl } from "../services/authNavigation";
 import Navbar from "../components/Navbar";
 
 function RegisterPage() {
@@ -9,6 +10,8 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const pendingUrl = getPendingUrl(location.state);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +38,7 @@ function RegisterPage() {
         throw new Error(message);
       }
 
-      navigate("/login");
+      navigate("/login", { state: pendingUrl ? { pendingUrl } : null });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -79,7 +82,7 @@ function RegisterPage() {
               {loading ? "Creating account..." : "Sign Up"}
             </button>
           </form>
-          <p>Already have an account? <Link to="/login">Login</Link></p>
+          <p>Already have an account? <Link to="/login" state={pendingUrl ? { pendingUrl } : null}>Login</Link></p>
         </div>
       </main>
     </>

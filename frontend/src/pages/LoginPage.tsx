@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { getPendingUrl } from "../services/authNavigation";
 import Navbar from "../components/Navbar";
 
 function LoginPage() {
@@ -9,6 +10,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
+  const location = useLocation();
+  const pendingUrl = getPendingUrl(location.state);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,7 +38,8 @@ function LoginPage() {
         throw new Error(message);
       }
 
-      navigate("/my-links");
+      if (pendingUrl) navigate("/", { replace: true, state: { pendingUrl } });
+      else navigate("/my-links");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -49,6 +53,7 @@ function LoginPage() {
       <main className="auth-page">
         <div className="auth-card">
           <h1>Login</h1>
+          {pendingUrl && <p role="status">Please log in to create your short link. Your URL is saved for after login.</p>}
           <form onSubmit={handleSubmit} aria-busy={loading}>
             <label htmlFor="login-email">Email</label>
             <input
@@ -79,7 +84,7 @@ function LoginPage() {
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
-          <p>Don't have an account? <Link to="/register">Create one</Link></p>
+          <p>Don't have an account? <Link to="/register" state={pendingUrl ? { pendingUrl } : null}>Create one</Link></p>
         </div>
       </main>
     </>

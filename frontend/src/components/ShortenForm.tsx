@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { getPendingUrl } from "../services/authNavigation";
 
 type UrlResponse = {
   shortCode: string;
@@ -10,7 +12,9 @@ type ApiError = {
 };
 
 function ShortenForm() {
-  const [url, setUrl] = useState("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [url, setUrl] = useState(() => getPendingUrl(location.state) ?? "");
   const [result, setResult] = useState<UrlResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,6 +22,7 @@ function ShortenForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (loading) return;
 
     setLoading(true);
     setError("");
@@ -25,8 +30,10 @@ function ShortenForm() {
     setCopied(false);
 
     try {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      if (!apiUrl) throw new Error("URL creation is unavailable. Please try again later.");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/urls`,
+        `${apiUrl.replace(/\/$/, "")}/api/urls`,
         {
           method: "POST",
           credentials: "include",
@@ -37,14 +44,20 @@ function ShortenForm() {
         }
       );
 
+      if (response.status === 401) {
+        navigate("/login", { state: { pendingUrl: url } });
+        return;
+      }
+
       if (!response.ok) {
         const errorData: ApiError = await response.json().catch(() => ({}));
 
-        throw new Error(errorData.message || "Failed to shorten URL");
+        throw new Error(errorData?.message || "Failed to shorten URL");
       }
 
       const data: UrlResponse = await response.json();
 
+      navigate(location.pathname, { replace: true, state: null });
       setResult(data);
       setCopied(false);
     } catch (err) {
@@ -75,6 +88,9 @@ function ShortenForm() {
       <form className="shorten-form" onSubmit={handleSubmit}>
         <input
           type="url"
+          aria-label="URL to shorten"
+          required
+          disabled={loading}
           placeholder="Shorten a link here..."
           value={url}
           onChange={(event) => setUrl(event.target.value)}
@@ -85,7 +101,7 @@ function ShortenForm() {
         </button>
       </form>
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className="error-message" role="alert">{error}</p>}
 
       {result && (
         <div className="url-result">
