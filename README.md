@@ -107,4 +107,4 @@ Wrong credentials return `401`, duplicate registration `409`, rate limiting `429
 make test
 ```
 
-Tests use the local PostgreSQL and Redis containers. Never commit real `.env` files or service credentials.
+Tests use the local PostgreSQL and Redis containers.
