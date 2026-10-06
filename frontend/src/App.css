@@ -309,3 +309,32 @@ nav .nav-signup {
 .auth-card a {
   color: #247777;
 }
+
+.links-page {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.link-card {
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  overflow-wrap: anywhere;
+}
+
+.link-card p {
+  margin: 8px 0;
+}
+
+.link-card a {
+  color: #247777;
+  text-decoration: none;
+}
