@@ -24,6 +24,7 @@ nav > div:first-of-type {
 }
 
 nav > div:last-of-type {
+  align-items: center;
   display: flex;
   gap: 12px;
 }
@@ -337,14 +338,6 @@ nav .nav-signup {
 .link-card a {
   color: #247777;
   text-decoration: none;
-}
-
-.links-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
 }
 
 .logout-button {

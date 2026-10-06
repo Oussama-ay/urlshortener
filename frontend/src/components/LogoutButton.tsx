@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function LogoutButton() {
+type LogoutButtonProps = {
+  onLogout?: () => void;
+};
+
+function LogoutButton({ onLogout }: LogoutButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
@@ -24,6 +28,7 @@ function LogoutButton() {
           ? data.message : "Failed to log out. Please try again.";
         throw new Error(message);
       }
+      onLogout?.();
       navigate("/login", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to log out. Please try again.");

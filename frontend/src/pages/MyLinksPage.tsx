@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import LogoutButton from "../components/LogoutButton";
 
 type UrlItem = {
   originalUrl: string;
@@ -65,10 +64,7 @@ function MyLinksPage() {
     <>
       <Navbar />
       <main className="links-page">
-        <div className="links-header">
-          <h1>My Links</h1>
-          <LogoutButton />
-        </div>
+        <h1>My Links</h1>
         {loading ? (
           <p role="status">Loading links...</p>
         ) : error ? (
