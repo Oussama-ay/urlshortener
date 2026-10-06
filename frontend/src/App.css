@@ -257,3 +257,55 @@ nav .nav-signup {
   margin: 40px auto;
   padding: 0 24px;
 }
+
+.auth-page {
+  min-height: calc(100vh - 96px);
+  box-sizing: border-box;
+  padding: 32px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  padding: 32px;
+  background: white;
+  border-radius: 12px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-card input {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.auth-card button {
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #2acfcf;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-card button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.auth-card a {
+  color: #247777;
+}
