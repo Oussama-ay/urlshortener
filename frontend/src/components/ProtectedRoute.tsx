@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
-import LogoutButton from "./LogoutButton";
-import { Link } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 
-function Navbar() {
-  const [authenticated, setAuthenticated] = useState(false);
+function ProtectedRoute() {
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -30,27 +29,9 @@ function Navbar() {
     return () => controller.abort();
   }, []);
 
-  return (
-    <nav>
-      <Link to="/" aria-label="Shortly home">
-        <img src="/images/logo.svg" alt="Shortly" />
-      </Link>
-
-      <div className="nav-auth">
-        {!loading && (authenticated ? (
-          <>
-            <Link className="nav-action" to="/my-links">My Links</Link>
-            <LogoutButton onLogout={() => setAuthenticated(false)} />
-          </>
-        ) : (
-          <>
-            <Link className="nav-action" to="/login">Login</Link>
-            <Link className="nav-action nav-signup" to="/register">Sign Up</Link>
-          </>
-        ))}
-      </div>
-    </nav>
-  );
+  if (loading) return <p className="page-content" role="status">Loading...</p>;
+  if (!authenticated) return <Navigate to="/login" replace />;
+  return <Outlet />;
 }
 
-export default Navbar;
+export default ProtectedRoute;

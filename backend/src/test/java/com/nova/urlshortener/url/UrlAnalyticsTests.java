@@ -2,6 +2,9 @@ package com.nova.urlshortener.url;
 
 import com.nova.urlshortener.url.dto.CachedUrl;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
+import com.nova.urlshortener.user.User;
+import com.nova.urlshortener.user.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,31 +26,43 @@ class UrlAnalyticsTests {
     @Autowired private UrlService service;
     @Autowired private UrlCache cache;
     @Autowired private UrlRepository repository;
+    @Autowired private UserRepository userRepository;
     @Autowired private ShortCodeGenerator generator;
+
+    @BeforeEach
+    void ensureTestUser() {
+        userRepository.findByEmail("analytics@example.com")
+                .orElseGet(() -> userRepository.save(
+                        new User("analytics@example.com", "test-password-hash")));
+    }
 
     @Test
     void countsColdAndCachedRedirectsButNotMetadataReads() {
         String destination = "https://example.com/analytics";
-        String code = service.createUrl(new CreateUrlRequest(destination, null)).shortCode();
+        String code = service.createUrl(
+            new CreateUrlRequest(destination, null),
+            "analytics@example.com").shortCode();
         assertTrue(cache.get(code).isEmpty());
-        assertEquals(0L, service.getUrlDetails(code).clickCount());
+        assertEquals(0L, service.getUrlDetails(code, "analytics@example.com").clickCount());
 
         assertEquals(destination, service.getOriginalUrl(code));
         assertTrue(cache.get(code).isPresent());
-        var first = service.getUrlDetails(code);
+        var first = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(1L, first.clickCount());
         assertNotNull(first.lastAccessedAt());
 
         assertEquals(destination, service.getOriginalUrl(code));
-        var second = service.getUrlDetails(code);
+        var second = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(2L, second.clickCount());
         assertFalse(second.lastAccessedAt().isBefore(first.lastAccessedAt()));
-        assertEquals(2L, service.getUrlDetails(code).clickCount());
+        assertEquals(2L, service.getUrlDetails(code, "analytics@example.com").clickCount());
     }
 
     @Test
     void concurrentRedirectsDoNotLoseClicks() throws Exception {
-        String code = service.createUrl(new CreateUrlRequest("https://example.com/concurrent", null)).shortCode();
+        String code = service.createUrl(
+            new CreateUrlRequest("https://example.com/concurrent", null),
+            "analytics@example.com").shortCode();
         service.getOriginalUrl(code); // Warm the cache before simultaneous redirects.
         var executor = Executors.newFixedThreadPool(8);
         try {
@@ -61,7 +76,7 @@ class UrlAnalyticsTests {
         } finally {
             executor.shutdownNow();
         }
-        assertEquals(41L, service.getUrlDetails(code).clickCount());
+        assertEquals(41L, service.getUrlDetails(code, "analytics@example.com").clickCount());
     }
 
     @Test
@@ -70,13 +85,14 @@ class UrlAnalyticsTests {
         String destination = "https://example.com/expired";
         // Seed an already-expired mapping directly; creation now rejects past expiration.
         String code = generator.generate();
-        repository.save(new Url(destination, code, expiry));
+        repository.save(new Url(destination, code, expiry,
+                userRepository.findByEmail("analytics@example.com").orElseThrow()));
         assertThrows(UrlExpiredException.class, () -> service.getOriginalUrl(code));
 
         cache.put(code, new CachedUrl(destination, expiry), Duration.ofMinutes(1));
         assertThrows(UrlExpiredException.class, () -> service.getOriginalUrl(code));
         assertTrue(cache.get(code).isEmpty());
-        var details = service.getUrlDetails(code);
+        var details = service.getUrlDetails(code, "analytics@example.com");
         assertEquals(0L, details.clickCount());
         assertNull(details.lastAccessedAt());
     }

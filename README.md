@@ -36,15 +36,30 @@ React frontend on Vercel → Spring Boot API on Render → Neon PostgreSQL and U
 
 Requirements: Docker Compose, Java 17, Node.js, npm, and Make.
 
+Start the local database and Redis dependencies:
+
 ```bash
-make install
-make dev
+make deps
+```
+
+Generate a local signing secret in the shell that starts the backend:
+
+```bash
+export JWT_SECRET="$(openssl rand -base64 32)"
+```
+
+Keep this value private and reuse it across restarts if existing tokens should remain valid.
+Then start each service with its own target:
+
+```bash
+make backend-local
+make frontend-local
 ```
 
 Frontend: `http://localhost:5173`
 
-API: `http://localhost:8080`
-Swagger: `http://localhost:8080/swagger-ui/index.html`
+API: `http://localhost:8081`
+Swagger: `http://localhost:8081/swagger-ui/index.html`
 
 Stop the local services with:
 
@@ -59,12 +74,65 @@ Local and deployment variable names are documented in:
 - `backend/.env.example`
 - `frontend/.env.example`
 
-The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `APP_BASE_URL`, and `APP_FRONTEND_URL`.
+The frontend uses `VITE_API_URL`. The backend uses `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `REDIS_URL`, `APP_BASE_URL`, `APP_FRONTEND_URL`, `JWT_SECRET`, and optional `JWT_EXPIRATION` (milliseconds, default `86400000`).
+
+## Cookie authentication
+
+Frontend requests use `credentials: "include"`. JWTs are stored in an HttpOnly,
+host-only cookie, never in localStorage or JSON login responses. Production uses
+`Secure; SameSite=None`; the local profile uses `SameSite=Lax` over HTTP.
+Set `APP_FRONTEND_URL` to the exact frontend origin and `APP_BASE_URL` to the public backend origin.
+CORS allows credentials only from that frontend origin.
+
+Every write request (including register, login, and logout) must have an `Origin`
+matching the configured frontend or backend origin. Missing, `null`, and foreign
+origins return a JSON `403`. This strict origin check provides CSRF protection;
+CLI clients must supply the trusted `Origin` header too. Bearer headers are no longer accepted.
+Logout expires the cookie; copied JWTs remain valid until expiration.
+Browsers that block third-party cookies may require hosting the frontend and backend on the same site.
+
+## Authentication smoke test
+
+In Swagger UI, call `POST /api/auth/register`, then `POST /api/auth/login`.
+Login sets an HttpOnly `access_token` cookie; the response contains no JWT. Swagger sends the cookie automatically.
+Create a URL with `POST /api/urls`, list it with `GET /api/urls?page=0&size=10&sort=createdAt,desc`,
+and fetch its details with `GET /api/urls/{shortCode}`.
+Register and log in as a second user: the first user's details must return `404` and their URLs must be absent from the list.
+Call `POST /api/auth/logout` and confirm `GET /{shortCode}` redirects with `302`, while management endpoints return `401`.
+Wrong credentials return `401`, duplicate registration `409`, rate limiting `429`, and expired redirects `410`.
+
+## Docker backend stack
+
+Compose reads the JWT settings from the ignored `backend/.env` file. Copy
+`backend/.env.example` to `backend/.env` if needed and replace its `JWT_SECRET`
+placeholder with a key generated using `openssl rand -base64 32`.
+The Compose database and Redis settings override the deployment examples.
+
+```bash
+docker compose up --build
+```
+
+This starts PostgreSQL, Redis, and the backend at `http://localhost:8080`.
+The frontend is hosted separately; for a local browser test, run it with
+`VITE_API_URL=http://localhost:8080 npm run dev` from `frontend`.
+Local Compose uses insecure `SameSite=Lax` cookies for HTTP. HTTPS deployments
+must use secure cookies and the correct frontend/backend origins.
 
 ## Checks
 
 ```bash
 make test
+make frontend-check
 ```
 
-Tests use the local PostgreSQL and Redis containers.
+Backend tests use `url_shortener_test`, separate from the development database.
+`make test` creates it if absent and runs migrations through Spring Boot. Tests
+clear their fixtures, so only point `TEST_DB_URL` at a disposable test database.
+To prepare it manually before running Maven:
+
+```bash
+docker compose exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 < backend/scripts/create-test-database.sql
+./backend/mvnw -f backend/pom.xml clean test
+```
+
+Redis tests use the local Redis instance. Never commit real `.env` files or service credentials.

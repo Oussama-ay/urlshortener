@@ -17,13 +17,9 @@ nav img {
   width: 120px;
 }
 
-nav > div:first-of-type {
-  display: flex;
-  gap: 24px;
-  flex: 1;
-}
-
-nav > div:last-of-type {
+nav .nav-auth {
+  margin-left: auto;
+  align-items: center;
   display: flex;
   gap: 12px;
 }
@@ -34,7 +30,7 @@ nav a {
   font-weight: 600;
 }
 
-nav button {
+nav .nav-action {
   border: none;
   background: none;
   padding: 10px 18px;
@@ -42,7 +38,7 @@ nav button {
   cursor: pointer;
 }
 
-nav button:last-child {
+nav .nav-signup {
   background: #2acfcf;
   color: white;
   border-radius: 24px;
@@ -195,8 +191,9 @@ nav button:last-child {
     padding: 20px;
   }
 
-  nav > div {
-    display: none;
+  nav {
+    flex-wrap: wrap;
+    gap: 16px;
   }
 
   .hero {
@@ -241,4 +238,106 @@ nav button:last-child {
   .short-url-section button {
     width: 100%;
   }
+}
+
+.page-content {
+  max-width: 1100px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.auth-page {
+  min-height: calc(100vh - 96px);
+  box-sizing: border-box;
+  padding: 32px 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f5f5f5;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  box-sizing: border-box;
+  padding: 32px;
+  background: white;
+  border-radius: 12px;
+}
+
+.auth-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.auth-card input {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
+.auth-card button {
+  padding: 14px;
+  border: none;
+  border-radius: 8px;
+  background: #2acfcf;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-card button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.auth-card a {
+  color: #247777;
+}
+
+.links-page {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 0 24px;
+}
+
+.links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.link-card {
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  border: 1px solid #eee;
+  overflow-wrap: anywhere;
+}
+
+.link-card p {
+  margin: 8px 0;
+}
+
+.link-card a {
+  color: #247777;
+  text-decoration: none;
+}
+
+.logout-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #3b3054;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
 }

@@ -16,12 +16,15 @@ import jakarta.validation.Valid;
 
 import com.nova.urlshortener.url.dto.UrlDetailsResponse;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import com.nova.urlshortener.ratelimit.RateLimiter;
+import org.springframework.security.core.Authentication;
 
 @RestController
 @RequestMapping ("/api/urls")
@@ -49,7 +52,8 @@ public class UrlController {
 	@ResponseStatus(HttpStatus.CREATED)
 	public UrlResponse createUrl(
 			@Valid @RequestBody CreateUrlRequest request,
-			HttpServletRequest httpRequest) {
+			HttpServletRequest httpRequest,
+			Authentication authentication) {
 
 		String clientIp = httpRequest.getRemoteAddr();
 
@@ -57,20 +61,37 @@ public class UrlController {
 			throw new RateLimitExceededException();
 		}
 
-		return urlService.createUrl(request);
+		return urlService.createUrl(request, authentication.getName());
+	}
+
+	@Operation(
+			summary = "List owned URLs",
+			description = "Returns the authenticated user's URLs with pagination and sorting"
+	)
+	@ApiResponses({
+			@ApiResponse(responseCode = "200", description = "URL page returned"),
+			@ApiResponse(responseCode = "401", description = "Authentication required")
+	})
+	@GetMapping
+	public Page<UrlDetailsResponse> getUserUrls(
+			Authentication authentication,
+			Pageable pageable) {
+		return urlService.getUserUrls(authentication.getName(), pageable);
 	}
 
 	@Operation(
 			summary = "Get URL details",
-			description = "Returns URL metadata and click analytics"
+			description = "Returns URL metadata and click analytics for a URL owned by the authenticated user"
 	)
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "URL found"),
-			@ApiResponse(responseCode = "404", description = "Short code not found"),
-			@ApiResponse(responseCode = "410", description = "URL expired")
+			@ApiResponse(responseCode = "401", description = "Authentication required"),
+			@ApiResponse(responseCode = "404", description = "Short code not found or not owned")
 	})
 	@GetMapping("/{shortCode}")
-	public UrlDetailsResponse getUrlDetails(@PathVariable String shortCode) {
-		return urlService.getUrlDetails(shortCode);
+	public UrlDetailsResponse getUrlDetails(
+			@PathVariable String shortCode,
+			Authentication authentication) {
+		return urlService.getUrlDetails(shortCode, authentication.getName());
 	}
 }

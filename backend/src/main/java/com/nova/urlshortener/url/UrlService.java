@@ -4,6 +4,8 @@ import com.nova.urlshortener.url.dto.CachedUrl;
 import com.nova.urlshortener.url.dto.CreateUrlRequest;
 import com.nova.urlshortener.url.dto.UrlDetailsResponse;
 import com.nova.urlshortener.url.dto.UrlResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +13,8 @@ import java.net.URI;
 import java.time.OffsetDateTime;
 import java.time.Duration;
 import java.util.Optional;
+import com.nova.urlshortener.user.User;
+import com.nova.urlshortener.user.UserRepository;
 
 import org.springframework.beans.factory.annotation.Value;
 
@@ -21,36 +25,46 @@ public class UrlService {
     private final ShortCodeGenerator shortCodeGenerator;
     private final String baseUrl;
     private final UrlCache urlCache;
+    private final UserRepository userRepository;
     private static final Duration DEFAULT_CACHE_TTL = Duration.ofHours(24);
 
     public UrlService(
             UrlRepository urlRepository,
             ShortCodeGenerator shortCodeGenerator,
             @Value("${app.base-url}") String baseUrl,
-            UrlCache urlCache
+            UrlCache urlCache,
+            UserRepository userRepository
     ) {
         this.urlRepository = urlRepository;
         this.shortCodeGenerator = shortCodeGenerator;
         this.baseUrl = baseUrl;
         this.urlCache = urlCache;
+        this.userRepository = userRepository;
     }
 
     @Transactional
-    public UrlResponse createUrl(CreateUrlRequest request) {
+    public UrlResponse createUrl(CreateUrlRequest request, String authenticatedEmail) {
         validateUrl(request.url());
         if (request.expiresAt() != null && !request.expiresAt().isAfter(OffsetDateTime.now())) {
             throw new InvalidExpirationException();
         }
 
+        User user = getAuthenticatedUser(authenticatedEmail);
+
         String shortCode = generateAvailableShortCode();
 
-        Url url = new Url(request.url(), shortCode, request.expiresAt());
+        Url url = new Url(request.url(), shortCode, request.expiresAt(), user);
         urlRepository.save(url);
 
         return new UrlResponse(
                 shortCode,
                 baseUrl + "/" + shortCode
         );
+    }
+
+    private User getAuthenticatedUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
     }
 
     private void validateUrl(String value) {
@@ -126,10 +140,21 @@ public class UrlService {
     }
 
     @Transactional(readOnly = true)
-    public UrlDetailsResponse getUrlDetails(String shortCode) {
-        Url url = urlRepository.findByShortCode(shortCode)
+    public UrlDetailsResponse getUrlDetails(String shortCode, String authenticatedEmail) {
+        User user = getAuthenticatedUser(authenticatedEmail);
+        Url url = urlRepository.findByShortCodeAndUserId(shortCode, user.getId())
                 .orElseThrow(() -> new UrlNotFoundException(shortCode));
 
+        return toDetailsResponse(url);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<UrlDetailsResponse> getUserUrls(String authenticatedEmail, Pageable pageable) {
+        User user = getAuthenticatedUser(authenticatedEmail);
+        return urlRepository.findByUserId(user.getId(), pageable).map(this::toDetailsResponse);
+    }
+
+    private UrlDetailsResponse toDetailsResponse(Url url) {
         return new UrlDetailsResponse(
                 url.getShortCode(),
                 baseUrl + "/" + url.getShortCode(),

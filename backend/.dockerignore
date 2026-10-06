@@ -3,3 +3,8 @@ target/
 .idea/
 .vscode/
 *.iml
+
+# Credentials must never enter the Docker build context.
+.env
+.env.*
+!.env.example
