@@ -101,10 +101,38 @@ Register and log in as a second user: the first user's details must return `404`
 Call `POST /api/auth/logout` and confirm `GET /{shortCode}` redirects with `302`, while management endpoints return `401`.
 Wrong credentials return `401`, duplicate registration `409`, rate limiting `429`, and expired redirects `410`.
 
+## Docker backend stack
+
+Compose reads the JWT settings from the ignored `backend/.env` file. Copy
+`backend/.env.example` to `backend/.env` if needed and replace its `JWT_SECRET`
+placeholder with a key generated using `openssl rand -base64 32`.
+The Compose database and Redis settings override the deployment examples.
+
+```bash
+docker compose up --build
+```
+
+This starts PostgreSQL, Redis, and the backend at `http://localhost:8080`.
+The frontend is hosted separately; for a local browser test, run it with
+`VITE_API_URL=http://localhost:8080 npm run dev` from `frontend`.
+Local Compose uses insecure `SameSite=Lax` cookies for HTTP. HTTPS deployments
+must use secure cookies and the correct frontend/backend origins.
+
 ## Checks
 
 ```bash
 make test
+make frontend-check
 ```
 
-Tests use the local PostgreSQL and Redis containers.
+Backend tests use `url_shortener_test`, separate from the development database.
+`make test` creates it if absent and runs migrations through Spring Boot. Tests
+clear their fixtures, so only point `TEST_DB_URL` at a disposable test database.
+To prepare it manually before running Maven:
+
+```bash
+docker compose exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 < backend/scripts/create-test-database.sql
+./backend/mvnw -f backend/pom.xml clean test
+```
+
+Redis tests use the local Redis instance. Never commit real `.env` files or service credentials.

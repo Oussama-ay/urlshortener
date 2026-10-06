@@ -2,7 +2,7 @@
 
 COMPOSE ?= docker compose
 
-.PHONY: help install deps backend-local frontend-local down
+.PHONY: help install deps backend-local frontend-local test frontend-check down
 
 help:
 	@printf '%s\n' \
@@ -10,6 +10,8 @@ help:
 	  'make deps          Start PostgreSQL and Redis locally' \
 	  'make backend-local Run the Spring Boot API with the local profile' \
 	  'make frontend-local Run the React frontend' \
+	  'make test          Prepare a separate test database and run backend tests' \
+	  'make frontend-check Install, build, and lint the frontend' \
 	  'make down          Stop the local Docker stack'
 
 install:
@@ -23,6 +25,13 @@ backend-local: deps
 
 frontend-local:
 	cd frontend && npm run dev
+
+test: deps
+	$(COMPOSE) exec -T postgres psql -U postgres -d postgres -v ON_ERROR_STOP=1 < backend/scripts/create-test-database.sql
+	./backend/mvnw -f backend/pom.xml clean test
+
+frontend-check:
+	cd frontend && npm ci && npm run build && npm run lint
 
 down:
 	$(COMPOSE) down
