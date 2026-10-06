@@ -1,5 +1,7 @@
 package com.nova.urlshortener.auth;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -33,5 +35,32 @@ public class JwtService {
                 .expiration(expiresAt)
                 .signWith(signingKey)
                 .compact();
+    }
+
+    public String extractUsername(String token) {
+        return parseClaims(token).getSubject();
+    }
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
+        try {
+            String username = extractUsername(token);
+
+            return username.equals(userDetails.getUsername())
+                    && !isTokenExpired(token);
+        } catch (JwtException | IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private boolean isTokenExpired(String token) {
+        return parseClaims(token).getExpiration().before(new Date());
+    }
+
+    private Claims parseClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
