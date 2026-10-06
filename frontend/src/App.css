@@ -338,3 +338,26 @@ nav .nav-signup {
   color: #247777;
   text-decoration: none;
 }
+
+.links-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.logout-button {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background: #3b3054;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.logout-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}

@@ -84,6 +84,7 @@ public class SecurityConfig {
                                             401, "Authentication required or invalid token", OffsetDateTime.now()));
                                 }))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",

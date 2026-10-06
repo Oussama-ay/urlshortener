@@ -48,6 +48,12 @@ public class AuthService {
 		return token;
 	}
 
+    public CurrentUserResponse getCurrentUser(String authenticatedEmail) {
+        User user = userRepository.findByEmail(authenticatedEmail)
+                .orElseThrow(() -> new IllegalStateException("Authenticated user not found"));
+        return new CurrentUserResponse(user.getId(), user.getEmail());
+    }
+
     public RegisterResponse register(RegisterRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
 

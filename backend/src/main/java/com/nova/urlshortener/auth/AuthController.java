@@ -3,6 +3,8 @@ package com.nova.urlshortener.auth;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.CacheControl;
+import org.springframework.security.core.Authentication;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,6 +20,12 @@ public class AuthController {
     public AuthController(AuthService authService, AuthCookie authCookie) {
         this.authService = authService;
         this.authCookie = authCookie;
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<CurrentUserResponse> me(Authentication authentication) {
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+                .body(authService.getCurrentUser(authentication.getName()));
     }
 
     @SecurityRequirements

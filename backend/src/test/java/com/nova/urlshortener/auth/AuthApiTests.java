@@ -156,4 +156,40 @@ class AuthApiTests {
                 .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
     }
 
+    @Test
+    void currentUserRequiresCookieAndLogoutRemovesBrowserAuthentication() throws Exception {
+        mvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+        mvc.perform(get("/api/auth/me").cookie(new Cookie("access_token", "invalid")))
+                .andExpect(status().isUnauthorized());
+
+        String body = "{\"email\":\"current@example.com\",\"password\":\"my-password\"}";
+        mvc.perform(post("/api/auth/register").header("Origin", "http://localhost:5173")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated());
+        var login = mvc.perform(post("/api/auth/login").header("Origin", "http://localhost:5173")
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        Cookie accessToken = login.getCookie("access_token");
+        Long id = userRepository.findByEmail("current@example.com").orElseThrow().getId();
+        mvc.perform(get("/api/auth/me").cookie(accessToken))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(jsonPath("$.id").value(id))
+                .andExpect(jsonPath("$.email").value("current@example.com"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist())
+                .andExpect(jsonPath("$.token").doesNotExist());
+        var logout = mvc.perform(post("/api/auth/logout").header("Origin", "http://localhost:5173")
+                        .cookie(accessToken))
+                .andExpect(status().isNoContent())
+                .andExpect(cookie().maxAge("access_token", 0))
+                .andReturn().getResponse();
+        // Model the browser replacing/removing the cookie after logout.
+        mvc.perform(get("/api/auth/me").cookie(logout.getCookie("access_token")))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/urls"))
+                .andExpect(status().isUnauthorized());
+    }
+
 }
